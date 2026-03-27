@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@keyframes flash-green {
+    0%   { background-color: #22c55e; }
+    100% { background-color: white; }
+}

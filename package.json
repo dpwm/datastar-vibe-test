@@ -3,13 +3,18 @@
   "version": "1.0.50",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
+    "dev": "bun run css && bun run --watch src/index.tsx"
   },
   "dependencies": {
+    "@elysiajs/html": "^1.4.0",
+    "@elysiajs/static": "^1.4.7",
     "elysia": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@tailwindcss/cli": "^4.2.2",
+    "bun-types": "latest",
+    "tailwindcss": "^4.2.2"
   },
   "module": "src/index.js"
 }
