@@ -1,10 +1,8 @@
 import { Elysia, t } from "elysia";
 import { html, Html } from '@elysiajs/html'
 import { staticPlugin } from '@elysiajs/static'
-import { createBrotliCompress, createGzip, constants } from 'node:zlib'
-import { Readable, PassThrough, pipeline } from 'node:stream'
 import { randomBytes } from 'node:crypto'
-
+import { eventStream } from './component'
 
 const state = {numbers: new Array(64).fill(0), count: 0};
 
@@ -12,10 +10,12 @@ type ViewState = {viewId: string, color?: "green" | "red"}
 const viewStates = new Map<string, ViewState>()
 
 function getViewState(viewId: string): ViewState {
-   return viewStates.getOrInsert(viewId, {viewId});
+  let vs = viewStates.get(viewId);
+  if (!vs) { vs = {viewId}; viewStates.set(viewId, vs); }
+  return vs;
 }
 
-function signals({state}: {state: {count: number}}): string {
+function signals({state}: {state: {count: number}}): string {
   return `{"_count": ${state.count}}`
 }
 
@@ -38,81 +38,6 @@ function Render({state, viewState}: {state: {numbers: number[], count: number}, 
 }
 
 const bus = new EventTarget();
-
-type StatePair<State, ViewState> = {
-  state: State,
-  viewState: ViewState
-}
-
-type Component<State extends {}, ViewState extends {viewId: string}> = {
-  render: (args: StatePair<State, ViewState>) => string,
-  signals: (args: StatePair<State, ViewState>) => string,
-}
-
-type EventStreamArgs<State extends {}, ViewState extends {viewId: string}> = StatePair<State, ViewState> & Component<State, ViewState> & {bus: EventTarget, acceptEncoding: string | undefined};
-
-// Don’t store the data on the backend. Leave it on the frontend.
-function eventStream<State extends {}, ViewState extends {viewId: string}>(args: EventStreamArgs<State, ViewState>): Response {
-  args.acceptEncoding ??= '';
-
-  const source = new Readable({ read() {} });
-  const passthrough = new PassThrough()
-
-  let contentEncoding: string | undefined
-  let compressor: any
-
-  if (args.acceptEncoding.includes('br')) {
-    compressor = createBrotliCompress({
-      params: {
-	[constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
-	[constants.BROTLI_PARAM_LGWIN]: 19,
-	[constants.BROTLI_PARAM_QUALITY]: 3,
-      },
-    });
-    contentEncoding = 'br'
-  } else if (args.acceptEncoding.includes('gzip')) {
-    compressor = createGzip()
-    contentEncoding = 'gzip'
-  }
-
-
-  function doUpdate() {
-    source.push(`event: datastar-patch-elements\ndata: elements ${args.render(args)}\n\n`)
-    source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args)}\n\n`)
-    compressor?.flush()
-  }
-
-
-
-  bus.addEventListener("*", doUpdate);
-  bus.addEventListener(args.viewState.viewId, doUpdate);
-
-  function cleanup() {
-    bus.removeEventListener("*", doUpdate);
-    bus.removeEventListener(args.viewState.viewId, doUpdate);
-    console.log("stream closed");
-  }
-
-  compressor ? pipeline(source, compressor, passthrough, cleanup) : pipeline(source, passthrough, cleanup);
-  console.log("stream opened");
-
-  doUpdate();
-
-  const readableStream = Readable.toWeb(passthrough) as unknown as globalThis.ReadableStream
-  const responseHeaders: Record<string, string> = {
-    'content-type': 'text/event-stream',
-    'cache-control': 'no-cache',
-    'connection': 'keep-alive',
-  }
-
-  if (contentEncoding) {
-    responseHeaders['content-encoding'] = contentEncoding
-  }
-
-  return new Response(readableStream, {
-    headers: responseHeaders,
-  })
-}
 
 const app = new Elysia()
 .use(html())
@@ -155,7 +80,6 @@ const app = new Elysia()
 function pollUpdate() {
   state.numbers[(Math.random() * 64)|0] = (Math.random() * 100) | 0;
   state.count++;
-  // console.log("update");
   bus.dispatchEvent(new CustomEvent("*"));
 }
 setInterval(pollUpdate, 1000)
