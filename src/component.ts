@@ -19,11 +19,11 @@ export type Component<State extends {}, ViewState extends {viewId: string}> = {
 }
 
 // Arguments for eventStream: combines state, view state, component methods,
-// the event bus, and the accept-encoding header into a single object.
+// the event bus, and the original request into a single object.
 export type EventStreamArgs<State extends {}, ViewState extends {viewId: string}> =
   StatePair<State, ViewState>
   & Component<State, ViewState>
-  & {bus: EventTarget, acceptEncoding: string | undefined};
+  & {bus: EventTarget, request: Request};
 
 // Creates an SSE Response that streams datastar-patch-elements and datastar-patch-signals
 // events to the client. Subscribes to two EventTarget channels:
@@ -32,7 +32,7 @@ export type EventStreamArgs<State extends {}, ViewState extends {viewId: string}
 // On connection, immediately pushes the initial render and signals.
 // On cleanup (pipeline close/error), removes event listeners from the bus.
 export function eventStream<State extends {}, ViewState extends {viewId: string}>(args: EventStreamArgs<State, ViewState>): Response {
-  args.acceptEncoding ??= '';
+  const acceptEncoding = args.request.headers.get('accept-encoding') ?? ''
 
   const source = new Readable({ read() {} });
   const passthrough = new PassThrough()
@@ -40,30 +40,31 @@ export function eventStream<State extends {}, ViewState extends {viewId: string}
   let contentEncoding: string | undefined
   let compressor: any
 
-  if (args.acceptEncoding.includes('br')) {
+  if (acceptEncoding.includes('br')) {
     compressor = createBrotliCompress({
       params: {
-	[constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
-	[constants.BROTLI_PARAM_LGWIN]: 19,
-	[constants.BROTLI_PARAM_QUALITY]: 3,
+        [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
+        [constants.BROTLI_PARAM_LGWIN]: 19,
+        [constants.BROTLI_PARAM_QUALITY]: 3,
       },
     });
     contentEncoding = 'br'
-  } else if (args.acceptEncoding.includes('gzip')) {
+  } else if (acceptEncoding.includes('gzip')) {
     compressor = createGzip()
     contentEncoding = 'gzip'
   }
 
   function doUpdate() {
-    source.push(`event: datastar-patch-elements\ndata: elements ${args.render(args)}\n\n`)
-    source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args)}\n\n`)
+    source.push(`event: datastar-patch-elements\ndata: elements ${args.render(args).replaceAll('\n', '')}\n\n`)
+    source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args).replaceAll('\n', '')}\n\n`)
     compressor?.flush()
   }
 
   args.bus.addEventListener("*", doUpdate);
   args.bus.addEventListener(args.viewState.viewId, doUpdate);
 
-  function cleanup() {
+  function cleanup(err: NodeJS.ErrnoException | null) {
+    if (err) console.error(err)
     args.bus.removeEventListener("*", doUpdate);
     args.bus.removeEventListener(args.viewState.viewId, doUpdate);
   }

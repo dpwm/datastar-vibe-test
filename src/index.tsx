@@ -25,13 +25,13 @@ function Render({state, viewState}: {state: {numbers: number[], count: number}, 
     <div id="grid" data-signals:view-id={`'${viewState.viewId}'`} data-on-signal-patch-filter='{"exclude": /^_.*/}' data-on-signal-patch="@post('/update')">
     <div data-init="@get('/stream')" class="grid grid-cols-8 gap-1 w-64" data-effect="history.replaceState(null, '', `?n=${$_count}`)">
       {Array.from({ length: 64 }, (_, i) => (
-	<div
-	  id={`cell-${i}`}
+        <div
+          id={`cell-${i}`}
 
-	  class={`flex items-center justify-center aspect-square border border-gray-300 rounded text-sm  bg-${viewState.color}-500`}
-	>
-	  {state.numbers[i]}
-	</div>
+          class={`flex items-center justify-center aspect-square border border-gray-300 rounded text-sm  bg-${viewState.color}-500`}
+        >
+          {state.numbers[i]}
+        </div>
       ))}
     </div>
       <button data-on:click="$color = 'red'">Red</button>
@@ -41,52 +41,50 @@ function Render({state, viewState}: {state: {numbers: number[], count: number}, 
 const bus = new EventTarget();
 
 const app = new Elysia()
-.use(html())
-.use(staticPlugin({ assets: 'public' }))
-.get("/", () => {
-  const viewState = {viewId: randomBytes(20).toBase64({alphabet: 'base64url'})}
+    .use(html())
+    .use(staticPlugin({ assets: 'public' }))
+    .get("/", () => {
+      const viewState = {viewId: randomBytes(20).toBase64({alphabet: 'base64url'})}
 
-  return (
-    <html lang="en">
-      <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>App</title>
-	<link rel="stylesheet" href="/public/styles.css" />
-	<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.8/bundles/datastar.js"></script>
-      </head>
+      return (
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>App</title>
+            <link rel="stylesheet" href="/public/styles.css" />
+            <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.8/bundles/datastar.js"></script>
+          </head>
 
-      <body>
+          <body>
 
-    	<div class="hidden bg-green-500 bg-red-500"></div>
-	<Render state={state} viewState={viewState}/>
-      </body>
-    </html>
-  )})
-.get("/stream", ({ headers, query }) => {
-  const args = JSON.parse(query.datastar)!;
-  const viewState = getViewState(args.viewId)
-  // In practice, state would come from database.
-  const component = {render: Render, signals}
-  const acceptEncoding = headers['accept-encoding']
-  Object.assign(viewState, args);
-  return eventStream({...component, bus, state, viewState, acceptEncoding})
-}, {query: t.Object({datastar: t.String()})})
-.post("/update", async ({request}) => {
-  const body = await request.json();
-  Object.assign(getViewState(body.viewId), body);
-  console.log("UPDATE");
-  bus.dispatchEvent(new Event(body.viewId));
-  return ''
-})
-.listen({hostname: '0.0.0.0', port: 3000})
+            <div class="hidden bg-green-500 bg-red-500"></div>
+            <Render state={state} viewState={viewState}/>
+          </body>
+        </html>
+      )})
+    .get("/stream", ({ request, query }) => {
+      const args = JSON.parse(query.datastar)!;
+      const viewState = getViewState(args.viewId)
+      const component = {render: Render, signals}
+      Object.assign(viewState, args);
+      return eventStream({...component, bus, state, viewState, request})
+    }, {query: t.Object({datastar: t.String()})})
+    .post("/update", async ({request}) => {
+      const body = await request.json();
+      Object.assign(getViewState(body.viewId), body);
+      console.log("UPDATE");
+      bus.dispatchEvent(new Event(body.viewId));
+      return ''
+    })
+    .listen({hostname: '0.0.0.0', port: 3000})
 
-function pollUpdate() {
+    function pollUpdate() {
   state.numbers[(Math.random() * 64)|0] = (Math.random() * 100) | 0;
   state.count++;
   bus.dispatchEvent(new CustomEvent("*"));
 }
-setInterval(pollUpdate, 1000)
+  setInterval(pollUpdate, 1000)
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
