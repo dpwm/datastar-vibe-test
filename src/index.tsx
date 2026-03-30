@@ -27,7 +27,8 @@ function Render({state, viewState}: {state: {numbers: number[], count: number}, 
       {Array.from({ length: 64 }, (_, i) => (
 	<div
 	  id={`cell-${i}`}
-	  class={`flex items-center justify-center aspect-square border border-gray-300 rounded text-sm bg-${viewState.color}-300`}
+
+	  class={`flex items-center justify-center aspect-square border border-gray-300 rounded text-sm  bg-${viewState.color}-500`}
 	>
 	  {state.numbers[i]}
 	</div>
@@ -54,7 +55,10 @@ const app = new Elysia()
 	<link rel="stylesheet" href="/public/styles.css" />
 	<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.8/bundles/datastar.js"></script>
       </head>
+
       <body>
+
+    	<div class="hidden bg-green-500 bg-red-500"></div>
 	<Render state={state} viewState={viewState}/>
       </body>
     </html>

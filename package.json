@@ -4,7 +4,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
-    "dev": "bun run css && bun run --watch src/index.tsx"
+    "dev": "bash -c 'bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify -w=always & bun run --watch src/index.tsx; kill %1'"
   },
   "dependencies": {
     "@elysiajs/html": "^1.4.0",
