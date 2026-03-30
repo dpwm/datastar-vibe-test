@@ -32,7 +32,7 @@ function Layout({children}: {children: JSX.Element | JSX.Element[]}): JSX.Elem
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>App</title>
         <link href="/src/style.css" rel="stylesheet" />
-        <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.8/bundles/datastar.js"></script>
+        <script type="module" src="/src/client.js"></script>
       </head>
 
       <body>
