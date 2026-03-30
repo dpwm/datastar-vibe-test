@@ -4,15 +4,18 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
-    "dev": "bash -c 'bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify -w=always & bun run --watch src/index.tsx; kill %1'"
+    "dev": "bun run --watch src/index.tsx"
   },
   "dependencies": {
     "@elysiajs/html": "^1.4.0",
     "@elysiajs/static": "^1.4.7",
-    "elysia": "latest"
+    "elysia": "latest",
+    "elysia-connect-middleware": "^0.0.6",
+    "vite": "^8.0.3"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2",
     "bun-types": "latest",
     "tailwindcss": "^4.2.2"
   },

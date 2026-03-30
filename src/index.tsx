@@ -3,6 +3,9 @@ import { html, Html } from '@elysiajs/html'
 import { staticPlugin } from '@elysiajs/static'
 import { randomBytes } from 'node:crypto'
 import { eventStream } from './component'
+import { createServer } from 'vite'
+import { connect } from "elysia-connect-middleware";
+import  tailwindcss  from '@tailwindcss/vite'
 
 const state = {numbers: new Array(64).fill(0), count: 0};
 
@@ -14,6 +17,8 @@ function getViewState(viewId: string): ViewState {
   if (!vs) { vs = {viewId}; viewStates.set(viewId, vs); }
   return vs;
 }
+
+const vite = await createServer({ server: { middlewareMode: true }, plugins: [tailwindcss()], appType: 'custom' });
 
 function signals({state}: {state: {count: number}}): string {
   return `{"_count": ${state.count}}`
@@ -42,27 +47,34 @@ const bus = new EventTarget();
 
 const app = new Elysia()
     .use(html())
-    .use(staticPlugin({ assets: 'public' }))
-    .get("/", () => {
+    // .use(staticPlugin({ assets: 'public' }))
+    .use(connect(vite.middlewares))
+    .get("/", async () => {
       const viewState = {viewId: randomBytes(20).toBase64({alphabet: 'base64url'})}
 
-      return (
+      let html= (
         <html lang="en">
           <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>App</title>
-            <link rel="stylesheet" href="/public/styles.css" />
+	    <link href="/src/style.css" rel="stylesheet"/>
             <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.8/bundles/datastar.js"></script>
           </head>
 
           <body>
-
             <div class="hidden bg-green-500 bg-red-500"></div>
             <Render state={state} viewState={viewState}/>
           </body>
         </html>
-      )})
+      );
+
+      // Type hackery.
+      html = await vite.transformIndexHtml('/', html as string) as typeof html;
+
+      return html;
+      
+})
     .get("/stream", ({ request, query }) => {
       const args = JSON.parse(query.datastar)!;
       const viewState = getViewState(args.viewId)

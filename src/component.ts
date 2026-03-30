@@ -64,7 +64,7 @@ export function eventStream<State extends {}, ViewState extends {viewId: string}
   args.bus.addEventListener(args.viewState.viewId, doUpdate);
 
   function cleanup(err: NodeJS.ErrnoException | null) {
-    if (err) console.error(err)
+    // if (err) console.error(err)
     args.bus.removeEventListener("*", doUpdate);
     args.bus.removeEventListener(args.viewState.viewId, doUpdate);
   }
