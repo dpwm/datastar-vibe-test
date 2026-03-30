@@ -23,7 +23,7 @@ export type Component<State extends {}, ViewState extends {viewId: string}> = {
 export type EventStreamArgs<State extends {}, ViewState extends {viewId: string}> =
   StatePair<State, ViewState>
   & Component<State, ViewState>
-  & {bus: EventTarget, request: Request};
+  & {bus: EventTarget, request: Request, htmlTransform?: (x: string) => Promise<string>};
 
 // Creates an SSE Response that streams datastar-patch-elements and datastar-patch-signals
 // events to the client. Subscribes to two EventTarget channels:
@@ -55,9 +55,17 @@ export function eventStream<State extends {}, ViewState extends {viewId: string}
   }
 
   function doUpdate() {
-    source.push(`event: datastar-patch-elements\ndata: elements ${args.render(args).replaceAll('\n', '')}\n\n`)
-    source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args).replaceAll('\n', '')}\n\n`)
-    compressor?.flush()
+    if(args.htmlTransform) {
+      args.htmlTransform(args.render(args)).then(x => {
+        source.push(`event: datastar-patch-elements\ndata: elements ${x.replaceAll('\n', '')}\n\n`)
+        source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args).replaceAll('\n', '')}\n\n`)
+        compressor?.flush()
+      })
+    } else {
+      source.push(`event: datastar-patch-elements\ndata: elements ${args.render(args).replaceAll('\n', '')}\n\n`)
+      source.push(`event: datastar-patch-signals\ndata: signals ${args.signals(args).replaceAll('\n', '')}\n\n`)
+      compressor?.flush()
+    }
   }
 
   args.bus.addEventListener("*", doUpdate);
