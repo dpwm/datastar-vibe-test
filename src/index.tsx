@@ -26,7 +26,7 @@ function signals({state}: {state: {count: number}}): string {
 
 function Layout({children}: {children: JSX.Element | JSX.Element[]}): JSX.Element {
   return (
-    <html lang="en">
+    <html lang="en" class="bg-gray-800">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,20 +48,24 @@ function Render({state, viewState}: {state: {numbers: number[], count: number}, 
     <Layout>
       <div class="hidden bg-green-500 bg-red-500 bg-blue-500"></div>
       <div data-signals:view-id={`'${viewState.viewId}'`} data-on-signal-patch-filter='{"exclude": /^_.*/}' data-on-signal-patch="@post('/')">
-        <div data-init="@get('/')" class="grid grid-cols-8 gap-1 w-64" data-effect="history.replaceState(null, '', `?n=${$_count}`)">
+        <div class="grid place-items-center min-h-screen">
+        <div class="flex flex-col p-2 gap-2 bg-white border-gray-300 shadow-md rounded-md border-1">
+        <div data-init="@get('/')" class="grid grid-cols-8 gap-1" data-effect="history.replaceState(null, '', `?n=${$_count}`)">
           {Array.from({ length: 64 }, (_, i) => (
             <div
 
-              class={`flex items-center justify-center aspect-square border border-gray-300 rounded text-sm bg-${viewState.color}-500`}
+              class={`flex items-center justify-center w-16 h-16 border border-gray-300 shadow-sm rounded text-2xl text-gray-100 font-bold bg-${viewState.color}-500`}
             >
               {state.numbers[i]}
             </div>
           ))}
         </div>
-        <div class="flex gap-2 p-2 bg-gray-100 shadow-xl">
-        <button class="border-b-4 border-red-500 bg-red-300 p-4" data-on:click="$color='red'" data-on:mousedown="$color = 'red'">Red</button>
-        <button class="border-b-4 border-green-500 bg-green-300 p-4 " data-on:click="$color='green'" data-on:mousedown="$color = 'green'">Green</button>
-        <button class="border-b-4 border-blue-500 bg-blue-300 p-4 " data-on:click="$color='blue'" data-on:mousedown="$color = 'blue'">Blue</button>
+        <div class="flex flex-row gap-2 flex-basis-1">
+        <button class="border-b-4 hover:bg-red-400 border-red-500 bg-red-300 p-4 flex-1" data-on:click="$color='red'" data-on:mousedown="$color = 'red'">Red</button>
+        <button class="border-b-4 hover:bg-green-400 border-green-500 bg-green-300 p-4 flex-1 " data-on:click="$color='green'" data-on:mousedown="$color = 'green'">Green</button>
+        <button class="border-b-4 hover:bg-blue-400 border-blue-500 bg-blue-300 p-4 flex-1" data-on:click="$color='blue'" data-on:mousedown="$color = 'blue'">Blue</button>
+        </div>
+        </div>
         </div>
       </div>
     </Layout>
