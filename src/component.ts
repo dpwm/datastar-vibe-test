@@ -1,4 +1,4 @@
-import { createBrotliCompress, createGzip, constants } from 'node:zlib'
+import { createBrotliCompress, createGzip, createZstdCompress, constants } from 'node:zlib'
 import { Readable, PassThrough, pipeline } from 'node:stream'
 
 // A StatePair bundles shared application state with per-connection view state.
@@ -40,7 +40,10 @@ export function eventStream<State extends {}, ViewState extends {viewId: string}
   let contentEncoding: string | undefined
   let compressor: any
 
-  if (acceptEncoding.includes('br')) {
+  if (acceptEncoding.includes('zstd')) {
+    compressor = createZstdCompress()
+    contentEncoding = 'zstd'
+  } else if (acceptEncoding.includes('br')) {
     compressor = createBrotliCompress({
       params: {
         [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
